@@ -44,9 +44,25 @@ public class ClienteGUI extends JFrame {
         
         // Configuración básica de la ventana
         setTitle("Buscaminas Multijugador - Usuario: " + nombreJugador);
-        setDefaultCloseOperation(EXIT_ON_CLOSE);
+        //setDefaultCloseOperation(EXIT_ON_CLOSE);
+        setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         setLayout(new BorderLayout()); // Usamos BorderLayout para organizar arriba/centro
-
+        
+        //agregue este pq el exit on close no jalaba
+        addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override
+                public void windowClosing(java.awt.event.WindowEvent windowEvent) {
+                // Aquí cerramos todo manualmente para asegurar que el proceso muera
+                try {
+                     if (socket != null) socket.close(); // Cerramos conexión si existe
+                     if (timer != null) timer.stop();    // Paramos el reloj
+                } catch (Exception e) {}
+        
+                    System.out.println("Cerrando aplicación totalmente...");
+                    System.exit(0); // <--- ESTO MATA EL PROCESO (Kill)
+                }
+        });
+        
         // 2. PANEL SUPERIOR (ESTADO + TIEMPO)
         // Creamos un panel especial para la info de arriba
         JPanel panelSuperior = new JPanel(new BorderLayout());
@@ -138,8 +154,11 @@ public class ClienteGUI extends JFrame {
                     break;
                 case "GAMEOVER":
                     timer.stop();
-                    JOptionPane.showMessageDialog(this, msj.getContenido());
-                    preguntarReinicio();
+                   new javax.swing.Timer(500, e -> {
+                        ((javax.swing.Timer)e.getSource()).stop(); // Detener este timer de una sola vez
+                         JOptionPane.showMessageDialog(this, msj.getContenido());
+                         preguntarReinicio();
+                    }).start();
                     break;
             }
         });
@@ -225,25 +244,36 @@ public class ClienteGUI extends JFrame {
     }
     
     private void actualizarBoton(JButton btn, Tablero.Celda celda) {
-        if (celda.revelada) {
+    if (celda.revelada) {
+        if (celda.esMina) {
+            // --- CAMBIO: DEJAMOS EL BOTÓN ACTIVO PARA QUE SE VEA EL COLOR ---
+            btn.setEnabled(true); 
+            btn.setBackground(Color.RED); // Rojo intenso
+            btn.setFont(new Font("Segoe UI Emoji", Font.BOLD, 20)); 
+            btn.setText("💣");
+            // Le quitamos el borde para que se vea plano
+            btn.setBorder(BorderFactory.createLineBorder(Color.DARK_GRAY));
+        } else {
+            // Si es número, sí lo deshabilitamos para que se vea "hundido"
             btn.setEnabled(false);
-            btn.setBackground(new Color(230, 230, 230)); // Gris muy claro
+            btn.setBackground(new Color(230, 230, 230));
             btn.setBorder(BorderFactory.createLineBorder(Color.GRAY));
             
-            if (celda.esMina) {
-                btn.setBackground(Color.RED);
-                btn.setText("💣");
-            } else if (celda.minasAlrededor > 0) {
+            if (celda.minasAlrededor > 0) {
+                btn.setFont(new Font("Arial", Font.BOLD, 14));
                 btn.setText(String.valueOf(celda.minasAlrededor));
                 btn.setForeground(COLORES_NUMEROS[Math.min(celda.minasAlrededor, 8)]);
             } else {
-                btn.setText(""); // Vacío (0)
+                btn.setText("");
             }
-        } else {
-            btn.setEnabled(true);
-            btn.setBackground(new Color(180, 180, 180)); // Gris "sin pulsar"
-            btn.setText(celda.marcada ? "🚩" : "");
-            btn.setForeground(Color.RED); // Color de la bandera
         }
+    } else {
+        // Celdas ocultas
+        btn.setEnabled(true);
+        btn.setBackground(new Color(180, 180, 180));
+        btn.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 18));
+        btn.setText(celda.marcada ? "🚩" : "");
+        btn.setForeground(Color.RED);
     }
+}
 }

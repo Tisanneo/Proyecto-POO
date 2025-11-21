@@ -135,4 +135,16 @@ public class Tablero implements Serializable {
         }
         return celdasSegurasReveladas == totalCeldasSeguras;
     }
+    
+    //este metodo lo que hace es que si llegamos a perder mostrara las minas en el lugar que se encuentren
+    public void revelarTodo() {
+        for (int i = 0; i < filas; i++) {
+            for (int j = 0; j < columnas; j++) {
+             
+                if (celdas[i][j].esMina) {
+                    celdas[i][j].revelada = true;
+                }
+            }
+        }
+    }
 }

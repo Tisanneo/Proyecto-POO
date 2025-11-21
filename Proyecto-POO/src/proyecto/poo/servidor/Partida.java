@@ -111,8 +111,13 @@ public class Partida implements Runnable {
 
         if(exploto) {
             String ganador = esJ1 ? "Jugador 2" : "Jugador 1";
-            // Revelar todas las minas al perder (opcional, mejora visual)
-            // t.revelarTodo(); 
+            //envia la actualizacion primero
+            try {
+                 enviarActualizacionTableros();
+            } catch (IOException e) {
+                  e.printStackTrace();
+              }
+            t.revelarTodo(); 
             enviarAmbos(new Mensaje("GAMEOVER", "¡BOOM! Has explotado una mina.\nGanador: " + ganador));
         }  else {
             // VERIFICAR VICTORIA
