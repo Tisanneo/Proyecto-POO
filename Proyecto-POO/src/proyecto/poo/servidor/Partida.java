@@ -114,10 +114,25 @@ public class Partida implements Runnable {
             // Revelar todas las minas al perder (opcional, mejora visual)
             // t.revelarTodo(); 
             enviarAmbos(new Mensaje("GAMEOVER", "¡BOOM! Has explotado una mina.\nGanador: " + ganador));
-        } else {
-            enviarActualizacionTableros(); // AQUÍ ESTÁ EL CAMBIO CLAVE
-            turnoJ1 = !turnoJ1;
-            actualizarTurnos();
+        }  else {
+            // VERIFICAR VICTORIA
+            if (t.esVictoria()) {
+                String ganador = esJ1 ? "Jugador 1" : "Jugador 2";
+                String perdedor = esJ1 ? "Jugador 2" : "Jugador 1";
+
+                // Enviamos mensaje de Fin de juego
+                enviarAmbos(new Mensaje("GAMEOVER", "¡FELICIDADES!\n" + ganador + " ha despejado el campo."));
+
+                // GUARDAR EN HISTORIAL (Ver Paso 3)
+                GestorArchivos.guardarPartida(ganador, perdedor); 
+
+                activa = false; // Detener juego
+            } else {
+                // Si nadie gana ni pierde, seguimos jugando
+                enviarActualizacionTableros();
+                turnoJ1 = !turnoJ1;
+                actualizarTurnos();
+            }
         }
     }
 

@@ -120,4 +120,19 @@ public class Tablero implements Serializable {
     public int getFilas() { return filas; }
     public int getColumnas() { return columnas; }
     public Celda getCelda(int r, int c) { return celdas[r][c]; }
+    
+    // Poner esto al final de Tablero.java, antes del último cierre de llave }
+    public boolean esVictoria() {
+        int celdasSegurasReveladas = 0;
+        int totalCeldasSeguras = (filas * columnas) - minas;
+
+        for(int i=0; i<filas; i++) {
+            for(int j=0; j<columnas; j++) {
+                if(!celdas[i][j].esMina && celdas[i][j].revelada) {
+                    celdasSegurasReveladas++;
+                }
+            }
+        }
+        return celdasSegurasReveladas == totalCeldasSeguras;
+    }
 }
