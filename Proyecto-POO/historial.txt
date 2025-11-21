@@ -1,0 +1,4 @@
+Fecha: Thu Nov 20 15:38:21 PST 2025 | Ganador: Jugador 1
+Fecha: Thu Nov 20 15:39:40 PST 2025 | Ganador: Jugador 2
+Fecha: Thu Nov 20 15:42:49 PST 2025 | Ganador: Jugador 2
+Fecha: Thu Nov 20 15:43:23 PST 2025 | Ganador: Jugador 2

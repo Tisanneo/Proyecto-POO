@@ -1,20 +1,45 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Main.java to edit this template
- */
 package proyecto.poo.servidor;
 
-/**
- *
- * @author Tisan
- */
-public class ProyectoPOO {
+import java.io.*;
+import java.net.*;
+import java.util.*;
+import proyecto.poo.comunes.*;
 
-    /**
-     * @param args the command line arguments
-     */
+public class ProyectoPOO {
+    private static final int PUERTO = 4444;
+    // Cola de espera para emparejar jugadores
+    private static List<Socket> espera = new ArrayList<>();
+    private static List<ObjectOutputStream> esperaOut = new ArrayList<>();
+
     public static void main(String[] args) {
-        // TODO code application logic here
+        System.out.println("Servidor Buscaminas Iniciado en puerto " + PUERTO);
+        try (ServerSocket server = new ServerSocket(PUERTO)) {
+            while(true) {
+                Socket s = server.accept();
+                ObjectOutputStream out = new ObjectOutputStream(s.getOutputStream());
+                out.flush();
+                
+                System.out.println("Nuevo cliente conectado: " + s.getInetAddress());
+                
+                espera.add(s);
+                esperaOut.add(out);
+                
+                out.writeObject(new Mensaje("INFO", "Conectado. Esperando oponente..."));
+                
+                // Si hay 2, iniciamos partida
+                if(espera.size() >= 2) {
+                    Socket j1 = espera.remove(0);
+                    Socket j2 = espera.remove(0);
+                    ObjectOutputStream out1 = esperaOut.remove(0);
+                    ObjectOutputStream out2 = esperaOut.remove(0);
+                    
+                    // Unidad 2: Concurrencia (Hilo por partida)
+                    Partida p = new Partida(j1, j2, out1, out2);
+                    new Thread(p).start();
+                }
+            }
+        } catch(IOException e) {
+            e.printStackTrace();
+        }
     }
-    
 }
