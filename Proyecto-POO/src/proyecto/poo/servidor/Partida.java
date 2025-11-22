@@ -1,5 +1,5 @@
 package proyecto.poo.servidor;
-/*HOOOOOOOOOOOLAAAAAAAAAAAAAAAA*/
+
 import java.io.*;
 import java.net.Socket;
 import java.awt.Point;
@@ -11,7 +11,10 @@ public class Partida implements Runnable {
     private ObjectInputStream in1, in2;
     private Tablero tableroJ1, tableroJ2;
     private boolean turnoJ1 = true;
-    private boolean activa = true;
+    
+    // --- CAMBIO 1: Variable para mantener el hilo vivo ---
+    private boolean activa = true;          // Mantiene la conexión viva
+    private boolean juegoTerminado = false; // Bloquea el juego sin matar la conexión
     
     private boolean j1ListoParaReiniciar = false;
     private boolean j2ListoParaReiniciar = false;
@@ -27,11 +30,8 @@ public class Partida implements Runnable {
             in1 = new ObjectInputStream(s1.getInputStream());
             in2 = new ObjectInputStream(s2.getInputStream());
 
-            // Preguntar dificultad
             out1.writeObject(new Mensaje("CONFIG_DIFICULTAD", null));
             out2.writeObject(new Mensaje("INFO", "Esperando que el anfitrión elija la dificultad..."));
-            
-            // IMPORTANTE: Flush para asegurar que el mensaje llega
             out1.flush(); out2.flush(); 
             
             Mensaje resp = (Mensaje) in1.readObject();
@@ -54,7 +54,6 @@ public class Partida implements Runnable {
         tableroJ1 = tabs[0];
         tableroJ2 = tabs[1];
         
-        // RESETEAMOS antes de enviar para evitar caché
         out1.reset();
         out1.writeObject(new Mensaje("INICIO", tableroJ1));
         
@@ -66,7 +65,6 @@ public class Partida implements Runnable {
 
     private void actualizarTurnos() throws IOException {
         if(!activa) return;
-        // No necesitamos reset para booleanos simples, pero no hace daño
         out1.writeObject(new Mensaje("TURNO", turnoJ1));
         out2.writeObject(new Mensaje("TURNO", !turnoJ1));
         out1.flush(); out2.flush();
@@ -94,7 +92,8 @@ public class Partida implements Runnable {
     }
 
     private synchronized void procesarBandera(Point p, boolean esJ1) throws IOException {
-        if(!activa || esJ1 != turnoJ1) return;
+        // --- CAMBIO 2: Bloqueamos si el juego terminó, pero seguimos escuchando ---
+        if(!activa || juegoTerminado || esJ1 != turnoJ1) return;
         
         Tablero t = esJ1 ? tableroJ1 : tableroJ2;
         t.toggleBandera(p.x, p.y);
@@ -103,72 +102,44 @@ public class Partida implements Runnable {
     }
 
     private synchronized void procesarJugada(Point p, boolean esJ1) throws IOException {
-        if(!activa || esJ1 != turnoJ1) return;
+        // --- CAMBIO 3: Bloqueo por juego terminado ---
+        if(!activa || juegoTerminado || esJ1 != turnoJ1) return;
 
         Tablero t = esJ1 ? tableroJ1 : tableroJ2;
         
         boolean exploto = t.revelarCelda(p.x, p.y);
 
         if(exploto) {
-            // --- INICIO DE LA MODIFICACIÓN ---
-            
-            // 1. Primero actualizamos tableros para que se vea la mina
-            try {
-                 enviarActualizacionTableros();
-            } catch (IOException e) {
-                  e.printStackTrace();
-            }
-            
+            // Mostrar la mina que explotó
+            try { enviarActualizacionTableros(); } catch (IOException e) {}
             t.revelarTodo(); 
             
-            // 2. Definimos los mensajes
             String msgPerdedor = "¡BOOM! Has explotado una mina.\nHas PERDIDO.";
             String msgGanador  = "¡Tu oponente ha explotado una mina!\n¡Has GANADO!";
 
-            // 3. Enviamos mensajes diferentes según quién fue (esJ1)
             if (esJ1) {
-                // Si J1 explotó: J1 pierde, J2 gana
-                out1.reset();
-                out1.writeObject(new Mensaje("GAMEOVER", msgPerdedor));
-                out1.flush();
-                
-                out2.reset();
-                out2.writeObject(new Mensaje("GAMEOVER", msgGanador));
-                out2.flush();
-                
-                // Opcional: Guardar historial aquí si J1 pierde
-                // GestorArchivos.guardarPartida("Jugador 2", "Jugador 1");
-                
+                out1.reset(); out1.writeObject(new Mensaje("GAMEOVER", msgPerdedor)); out1.flush();
+                out2.reset(); out2.writeObject(new Mensaje("GAMEOVER", msgGanador)); out2.flush();
+                GestorArchivos.guardarPartida("Jugador 2", "Jugador 1"); // Guardar
             } else {
-                // Si J2 explotó: J1 gana, J2 pierde
-                out1.reset();
-                out1.writeObject(new Mensaje("GAMEOVER", msgGanador));
-                out1.flush();
-                
-                out2.reset();
-                out2.writeObject(new Mensaje("GAMEOVER", msgPerdedor));
-                out2.flush();
-                
-                // Opcional: Guardar historial aquí si J2 pierde
-                // GestorArchivos.guardarPartida("Jugador 1", "Jugador 2");
+                out1.reset(); out1.writeObject(new Mensaje("GAMEOVER", msgGanador)); out1.flush();
+                out2.reset(); out2.writeObject(new Mensaje("GAMEOVER", msgPerdedor)); out2.flush();
+                GestorArchivos.guardarPartida("Jugador 1", "Jugador 2"); // Guardar
             }
             
-            activa = false; // Detenemos la partida
-            
-            // --- FIN DE LA MODIFICACIÓN ---
+            // --- CAMBIO 4: NO MATAMOS EL HILO (activa = false), SOLO PAUSAMOS EL JUEGO ---
+            juegoTerminado = true; 
 
-        }  else {
-            // ESTA PARTE SE QUEDA IGUAL (VICTORIA NORMAL)
+        } else {
             if (t.esVictoria()) {
                 String ganador = esJ1 ? "Jugador 1" : "Jugador 2";
                 String perdedor = esJ1 ? "Jugador 2" : "Jugador 1";
 
-                // Aquí también podrías personalizar el mensaje si quisieras
                 enviarAmbos(new Mensaje("GAMEOVER", "¡FELICIDADES!\n" + ganador + " ha despejado el campo."));
-
                 GestorArchivos.guardarPartida(ganador, perdedor); 
-
-                activa = false; 
+                
+                // --- CAMBIO 5: PAUSAR, NO MATAR ---
+                juegoTerminado = true; 
             } else {
                 enviarActualizacionTableros();
                 turnoJ1 = !turnoJ1;
@@ -177,10 +148,7 @@ public class Partida implements Runnable {
         }
     }
 
-    // --- MÉTODO NUEVO PARA ENVIAR TABLEROS CON RESET ---
     private void enviarActualizacionTableros() throws IOException {
-        // ¡ESTA ES LA SOLUCIÓN AL PROBLEMA!
-        // reset() borra la caché de objetos enviados, obligando a enviar los datos nuevos
         out1.reset(); 
         out1.writeObject(new Mensaje("UPDATE", tableroJ1));
         out1.flush();
@@ -201,7 +169,13 @@ public class Partida implements Runnable {
         
         if(j1ListoParaReiniciar && j2ListoParaReiniciar) {
             j1ListoParaReiniciar = false; j2ListoParaReiniciar = false;
+            
+            // --- CAMBIO 6: REVIVIR EL JUEGO ---
+            juegoTerminado = false; 
             turnoJ1 = true;
+            
+            // Reiniciar con la misma dificultad o preguntar de nuevo (aquí por simplicidad reinicia en Principiante)
+            // Si quisieras preguntar dificultad de nuevo, habría que hacer más cambios en el protocolo
             iniciarJuego("Principiante"); 
         }
     }
