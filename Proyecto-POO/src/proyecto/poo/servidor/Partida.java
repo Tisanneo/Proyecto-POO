@@ -110,30 +110,66 @@ public class Partida implements Runnable {
         boolean exploto = t.revelarCelda(p.x, p.y);
 
         if(exploto) {
-            String ganador = esJ1 ? "Jugador 2" : "Jugador 1";
-            //envia la actualizacion primero
+            // --- INICIO DE LA MODIFICACIÓN ---
+            
+            // 1. Primero actualizamos tableros para que se vea la mina
             try {
                  enviarActualizacionTableros();
             } catch (IOException e) {
                   e.printStackTrace();
-              }
+            }
+            
             t.revelarTodo(); 
-            enviarAmbos(new Mensaje("GAMEOVER", "¡BOOM! Has explotado una mina.\nGanador: " + ganador));
+            
+            // 2. Definimos los mensajes
+            String msgPerdedor = "¡BOOM! Has explotado una mina.\nHas PERDIDO.";
+            String msgGanador  = "¡Tu oponente ha explotado una mina!\n¡Has GANADO!";
+
+            // 3. Enviamos mensajes diferentes según quién fue (esJ1)
+            if (esJ1) {
+                // Si J1 explotó: J1 pierde, J2 gana
+                out1.reset();
+                out1.writeObject(new Mensaje("GAMEOVER", msgPerdedor));
+                out1.flush();
+                
+                out2.reset();
+                out2.writeObject(new Mensaje("GAMEOVER", msgGanador));
+                out2.flush();
+                
+                // Opcional: Guardar historial aquí si J1 pierde
+                // GestorArchivos.guardarPartida("Jugador 2", "Jugador 1");
+                
+            } else {
+                // Si J2 explotó: J1 gana, J2 pierde
+                out1.reset();
+                out1.writeObject(new Mensaje("GAMEOVER", msgGanador));
+                out1.flush();
+                
+                out2.reset();
+                out2.writeObject(new Mensaje("GAMEOVER", msgPerdedor));
+                out2.flush();
+                
+                // Opcional: Guardar historial aquí si J2 pierde
+                // GestorArchivos.guardarPartida("Jugador 1", "Jugador 2");
+            }
+            
+            activa = false; // Detenemos la partida
+            
+            // --- FIN DE LA MODIFICACIÓN ---
+
         }  else {
-            // VERIFICAR VICTORIA
+            // ESTA PARTE SE QUEDA IGUAL (VICTORIA NORMAL)
             if (t.esVictoria()) {
                 String ganador = esJ1 ? "Jugador 1" : "Jugador 2";
                 String perdedor = esJ1 ? "Jugador 2" : "Jugador 1";
 
-                // Enviamos mensaje de Fin de juego
+                // Aquí también podrías personalizar el mensaje si quisieras
                 enviarAmbos(new Mensaje("GAMEOVER", "¡FELICIDADES!\n" + ganador + " ha despejado el campo."));
 
-                // GUARDAR EN HISTORIAL (Ver Paso 3)
                 GestorArchivos.guardarPartida(ganador, perdedor); 
 
-                activa = false; // Detener juego
+                activa = false; 
             } else {
-                // Si nadie gana ni pierde, seguimos jugando
                 enviarActualizacionTableros();
                 turnoJ1 = !turnoJ1;
                 actualizarTurnos();
