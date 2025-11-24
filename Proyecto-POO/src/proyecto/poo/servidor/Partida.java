@@ -18,6 +18,9 @@ public class Partida implements Runnable {
     
     private boolean j1ListoParaReiniciar = false;
     private boolean j2ListoParaReiniciar = false;
+    
+    private String dificultadActual = "Desconocida";
+    private int contadorMovimientos = 0;
 
     public Partida(Socket s1, Socket s2, ObjectOutputStream out1, ObjectOutputStream out2) {
         this.s1 = s1; this.s2 = s2;
@@ -49,6 +52,8 @@ public class Partida implements Runnable {
     }
     
     private void iniciarJuego(String dificultad) throws IOException {
+        this.dificultadActual = dificultad; // <--- GUARDAR ESTO
+        this.contadorMovimientos = 0;       // <--- RESETEAR ESTO
         GeneradorTableros gen = new GeneradorTableros();
         Tablero[] tabs = gen.generarParTableros(dificultad);
         tableroJ1 = tabs[0];
@@ -104,6 +109,7 @@ public class Partida implements Runnable {
     private synchronized void procesarJugada(Point p, boolean esJ1) throws IOException {
         // --- CAMBIO 3: Bloqueo por juego terminado ---
         if(!activa || juegoTerminado || esJ1 != turnoJ1) return;
+        contadorMovimientos++;
 
         Tablero t = esJ1 ? tableroJ1 : tableroJ2;
         
@@ -118,16 +124,21 @@ public class Partida implements Runnable {
             String msgGanador  = "¡Tu oponente ha explotado una mina!\n¡Has GANADO!";
 
             if (esJ1) {
+                // SI J1 EXPLOTA: J1 Pierde, J2 Gana
                 out1.reset(); out1.writeObject(new Mensaje("GAMEOVER", msgPerdedor)); out1.flush();
                 out2.reset(); out2.writeObject(new Mensaje("GAMEOVER", msgGanador)); out2.flush();
-                GestorArchivos.guardarPartida("Jugador 2", "Jugador 1"); // Guardar
+                
+                // CORRECCIÓN AQUÍ: Poner los nombres directos
+                GestorArchivos.guardarPartida("Jugador 2", "Jugador 1", dificultadActual, contadorMovimientos);
             } else {
+                // SI J2 EXPLOTA: J2 Pierde, J1 Gana
                 out1.reset(); out1.writeObject(new Mensaje("GAMEOVER", msgGanador)); out1.flush();
                 out2.reset(); out2.writeObject(new Mensaje("GAMEOVER", msgPerdedor)); out2.flush();
-                GestorArchivos.guardarPartida("Jugador 1", "Jugador 2"); // Guardar
+                
+                // CORRECCIÓN AQUÍ: Poner los nombres directos
+                GestorArchivos.guardarPartida("Jugador 1", "Jugador 2", dificultadActual, contadorMovimientos);
             }
             
-            // --- CAMBIO 4: NO MATAMOS EL HILO (activa = false), SOLO PAUSAMOS EL JUEGO ---
             juegoTerminado = true; 
 
         } else {
@@ -136,7 +147,7 @@ public class Partida implements Runnable {
                 String perdedor = esJ1 ? "Jugador 2" : "Jugador 1";
 
                 enviarAmbos(new Mensaje("GAMEOVER", "¡FELICIDADES!\n" + ganador + " ha despejado el campo."));
-                GestorArchivos.guardarPartida(ganador, perdedor); 
+                GestorArchivos.guardarPartida(ganador, perdedor, dificultadActual, contadorMovimientos);
                 
                 // --- CAMBIO 5: PAUSAR, NO MATAR ---
                 juegoTerminado = true; 
