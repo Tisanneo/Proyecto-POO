@@ -1,2 +1,7 @@
-Fri Nov 21 18:22:12 PST 2025 | Ganador: Jugador 2 | Perdedor: Jugador 1
-Fri Nov 21 18:22:38 PST 2025 | Ganador: Jugador 2 | Perdedor: Jugador 1
+------------------------------------------------
+FECHA: Thu Nov 27 19:16:58 PST 2025
+DIFICULTAD: Avanzado
+GANADOR: Andre
+PERDEDOR: Santiago
+MOVIMIENTOS TOTALES (Turnos): 1
+------------------------------------------------

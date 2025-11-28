@@ -12,9 +12,12 @@ public class Partida implements Runnable {
     private Tablero tableroJ1, tableroJ2;
     private boolean turnoJ1 = true;
     
-    // --- CAMBIO 1: Variable para mantener el hilo vivo ---
-    private boolean activa = true;          // Mantiene la conexión viva
-    private boolean juegoTerminado = false; // Bloquea el juego sin matar la conexión
+    // Variables para los nombres reales
+    private String nombreJ1 = "Jugador 1";
+    private String nombreJ2 = "Jugador 2";
+    
+    private boolean activa = true;          
+    private boolean juegoTerminado = false; 
     
     private boolean j1ListoParaReiniciar = false;
     private boolean j2ListoParaReiniciar = false;
@@ -33,8 +36,23 @@ public class Partida implements Runnable {
             in1 = new ObjectInputStream(s1.getInputStream());
             in2 = new ObjectInputStream(s2.getInputStream());
 
+            // --- CAMBIO CLAVE: LEER NOMBRES AL INICIO ---
+            // Leemos el primer mensaje que envía cada cliente, que debe ser el LOGIN
+            Mensaje loginJ1 = (Mensaje) in1.readObject();
+            if (loginJ1.getTipo().equals("LOGIN")) {
+                nombreJ1 = (String) loginJ1.getContenido();
+            }
+
+            Mensaje loginJ2 = (Mensaje) in2.readObject();
+            if (loginJ2.getTipo().equals("LOGIN")) {
+                nombreJ2 = (String) loginJ2.getContenido();
+            }
+            
+            System.out.println("Partida iniciada: " + nombreJ1 + " vs " + nombreJ2);
+            // ---------------------------------------------
+
             out1.writeObject(new Mensaje("CONFIG_DIFICULTAD", null));
-            out2.writeObject(new Mensaje("INFO", "Esperando que el anfitrión elija la dificultad..."));
+            out2.writeObject(new Mensaje("INFO", "Esperando que el anfitrión (" + nombreJ1 + ") elija la dificultad..."));
             out1.flush(); out2.flush(); 
             
             Mensaje resp = (Mensaje) in1.readObject();
@@ -52,8 +70,9 @@ public class Partida implements Runnable {
     }
     
     private void iniciarJuego(String dificultad) throws IOException {
-        this.dificultadActual = dificultad; // <--- GUARDAR ESTO
-        this.contadorMovimientos = 0;       // <--- RESETEAR ESTO
+        this.dificultadActual = dificultad; 
+        this.contadorMovimientos = 0;       
+        
         GeneradorTableros gen = new GeneradorTableros();
         Tablero[] tabs = gen.generarParTableros(dificultad);
         tableroJ1 = tabs[0];
@@ -90,14 +109,31 @@ public class Partida implements Runnable {
                 else if(tipo.equals("REINICIAR")) {
                     procesarReinicio(esJ1);
                 }
+                else if(tipo.equals("RESPUESTA_DIF")) {
+                    String nuevaDificultad = (String) msj.getContenido();
+                    iniciarJuego(nuevaDificultad);
+                }
             }
         } catch(Exception e) {
-            activa = false; 
+            if (activa) { 
+                activa = false;
+                juegoTerminado = true;
+                notificarAbandono(!esJ1); 
+            }
         }
     }
 
+    private void notificarAbandono(boolean avisarAJ1) {
+        try {
+            ObjectOutputStream outDestino = avisarAJ1 ? out1 : out2;
+            String mensaje = "Tu oponente ha abandonado la partida.\nLa sesión se cerrará.";
+            outDestino.reset();
+            outDestino.writeObject(new Mensaje("ABANDONO", mensaje));
+            outDestino.flush();
+        } catch (IOException ex) {}
+    }
+
     private synchronized void procesarBandera(Point p, boolean esJ1) throws IOException {
-        // --- CAMBIO 2: Bloqueamos si el juego terminó, pero seguimos escuchando ---
         if(!activa || juegoTerminado || esJ1 != turnoJ1) return;
         
         Tablero t = esJ1 ? tableroJ1 : tableroJ2;
@@ -107,49 +143,48 @@ public class Partida implements Runnable {
     }
 
     private synchronized void procesarJugada(Point p, boolean esJ1) throws IOException {
-        // --- CAMBIO 3: Bloqueo por juego terminado ---
         if(!activa || juegoTerminado || esJ1 != turnoJ1) return;
-        contadorMovimientos++;
-
-        Tablero t = esJ1 ? tableroJ1 : tableroJ2;
         
+        Tablero t = esJ1 ? tableroJ1 : tableroJ2;
+        Tablero.Celda c = t.getCelda(p.x, p.y);
+        if (c.revelada || c.marcada) {
+            return; 
+        }
+
+        contadorMovimientos++;
         boolean exploto = t.revelarCelda(p.x, p.y);
 
         if(exploto) {
-            // Mostrar la mina que explotó
-            try { enviarActualizacionTableros(); } catch (IOException e) {}
             t.revelarTodo(); 
+            try { enviarActualizacionTableros(); } catch (IOException e) {}
             
             String msgPerdedor = "¡BOOM! Has explotado una mina.\nHas PERDIDO.";
             String msgGanador  = "¡Tu oponente ha explotado una mina!\n¡Has GANADO!";
 
+            // USAMOS LAS VARIABLES DE NOMBRES REALES AQUÍ
             if (esJ1) {
-                // SI J1 EXPLOTA: J1 Pierde, J2 Gana
+                // J1 Explotó -> J1 Pierde, J2 Gana
                 out1.reset(); out1.writeObject(new Mensaje("GAMEOVER", msgPerdedor)); out1.flush();
                 out2.reset(); out2.writeObject(new Mensaje("GAMEOVER", msgGanador)); out2.flush();
-                
-                // CORRECCIÓN AQUÍ: Poner los nombres directos
-                GestorArchivos.guardarPartida("Jugador 2", "Jugador 1", dificultadActual, contadorMovimientos);
+                // Guardar con nombres reales
+                GestorArchivos.guardarPartida(nombreJ2, nombreJ1, dificultadActual, contadorMovimientos);
             } else {
-                // SI J2 EXPLOTA: J2 Pierde, J1 Gana
+                // J2 Explotó -> J2 Pierde, J1 Gana
                 out1.reset(); out1.writeObject(new Mensaje("GAMEOVER", msgGanador)); out1.flush();
                 out2.reset(); out2.writeObject(new Mensaje("GAMEOVER", msgPerdedor)); out2.flush();
-                
-                // CORRECCIÓN AQUÍ: Poner los nombres directos
-                GestorArchivos.guardarPartida("Jugador 1", "Jugador 2", dificultadActual, contadorMovimientos);
+                // Guardar con nombres reales
+                GestorArchivos.guardarPartida(nombreJ1, nombreJ2, dificultadActual, contadorMovimientos);
             }
-            
             juegoTerminado = true; 
 
         } else {
             if (t.esVictoria()) {
-                String ganador = esJ1 ? "Jugador 1" : "Jugador 2";
-                String perdedor = esJ1 ? "Jugador 2" : "Jugador 1";
+                String ganador = esJ1 ? nombreJ1 : nombreJ2;
+                String perdedor = esJ1 ? nombreJ2 : nombreJ1;
 
                 enviarAmbos(new Mensaje("GAMEOVER", "¡FELICIDADES!\n" + ganador + " ha despejado el campo."));
+                // Guardar con nombres reales
                 GestorArchivos.guardarPartida(ganador, perdedor, dificultadActual, contadorMovimientos);
-                
-                // --- CAMBIO 5: PAUSAR, NO MATAR ---
                 juegoTerminado = true; 
             } else {
                 enviarActualizacionTableros();
@@ -163,7 +198,6 @@ public class Partida implements Runnable {
         out1.reset(); 
         out1.writeObject(new Mensaje("UPDATE", tableroJ1));
         out1.flush();
-        
         out2.reset();
         out2.writeObject(new Mensaje("UPDATE", tableroJ2));
         out2.flush();
@@ -181,13 +215,16 @@ public class Partida implements Runnable {
         if(j1ListoParaReiniciar && j2ListoParaReiniciar) {
             j1ListoParaReiniciar = false; j2ListoParaReiniciar = false;
             
-            // --- CAMBIO 6: REVIVIR EL JUEGO ---
             juegoTerminado = false; 
             turnoJ1 = true;
             
-            // Reiniciar con la misma dificultad o preguntar de nuevo (aquí por simplicidad reinicia en Principiante)
-            // Si quisieras preguntar dificultad de nuevo, habría que hacer más cambios en el protocolo
-            iniciarJuego("Principiante"); 
+            out1.reset();
+            out1.writeObject(new Mensaje("CONFIG_DIFICULTAD", null));
+            out1.flush();
+            
+            out2.reset();
+            out2.writeObject(new Mensaje("INFO", "El anfitrión está eligiendo dificultad..."));
+            out2.flush();
         }
     }
 }

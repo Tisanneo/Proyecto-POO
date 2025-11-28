@@ -27,10 +27,9 @@ public class ClienteGUI extends JFrame {
     private int segundos = 0;           
     private String nombreJugador;       
     
-    // NUEVAS VARIABLES PARA EL GIF DE FONDO
+    // VARIABLES PARA EL GIF DE FONDO
     private ImageIcon iconFondoBeat; 
     private Image gifFondoBeat;      
-    // ------------------------------------
     
     // --- PALETA DE COLORES "RETRO ARCADE" ---
     private static final Color COLOR_FONDO = new Color(10, 5, 35); 
@@ -50,10 +49,10 @@ public class ClienteGUI extends JFrame {
     };
 
     public ClienteGUI() {
-        // 0. INICIAR MÚSICA DE FONDO (Nuevo)
+        // 0. INICIAR MÚSICA DE FONDO
         reproducirMusica(); 
         
-        // NUEVO: CARGAR GIF DE FONDO "BEAT"
+        // CARGAR GIF DE FONDO "BEAT"
         try {
             java.net.URL url = getClass().getResource("/proyecto/poo/recursos/beat.gif");
             if (url != null) {
@@ -63,7 +62,6 @@ public class ClienteGUI extends JFrame {
         } catch(Exception e){
             System.err.println("Error al cargar beat.gif: " + e.getMessage());
         }
-        // FIN NUEVO CARGA GIF
         
         // 1. PERSONALIZACIÓN (Look & Feel)
         try {
@@ -107,14 +105,72 @@ public class ClienteGUI extends JFrame {
         lblInfo.setForeground(COLOR_NEON_SECUNDARIO);
         lblInfo.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 5));
         
-        // --- CAMBIO AQUÍ: Panel derecho para agrupar Tiempo y Botón Mute ---
+        // --- Panel derecho para agrupar Tiempo y Botones ---
         JPanel panelDerecho = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 0));
-        panelDerecho.setOpaque(false); // Transparente para ver el fondo
+        panelDerecho.setOpaque(false); 
 
         lblTiempo = new JLabel("TIEMPO: 00:00", SwingConstants.RIGHT);
         lblTiempo.setFont(FUENTE_RETRO);
         lblTiempo.setForeground(Color.WHITE);
         
+        // --- NUEVO BOTÓN: VER MINAS (TOGGLE / INTERRUPTOR) ---
+        JButton btnVerMinas = new JButton("👁");
+        btnVerMinas.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 16));
+        btnVerMinas.setBackground(COLOR_FONDO);
+        btnVerMinas.setForeground(Color.YELLOW);
+        btnVerMinas.setFocusPainted(false);
+        btnVerMinas.setBorder(BorderFactory.createLineBorder(Color.YELLOW, 1));
+        btnVerMinas.setPreferredSize(new Dimension(40, 25));
+        btnVerMinas.setToolTipText("Ver/Ocultar Minas (Trampa)");
+        
+        // Variable "truco" para recordar el estado dentro del botón
+        final boolean[] trampaActiva = {false};
+
+        btnVerMinas.addActionListener(e -> {
+            if (tablero == null || botones == null) return;
+            
+            trampaActiva[0] = !trampaActiva[0];
+            boolean mostrar = trampaActiva[0];
+
+            if (mostrar) {
+                btnVerMinas.setBackground(Color.YELLOW);
+                btnVerMinas.setForeground(Color.BLACK); 
+            } else {
+                btnVerMinas.setBackground(COLOR_FONDO);
+                btnVerMinas.setForeground(Color.YELLOW); 
+            }
+
+            int f = tablero.getFilas();
+            int c = tablero.getColumnas();
+            
+            for(int i=0; i<f; i++) {
+                for(int j=0; j<c; j++) {
+                    Tablero.Celda celda = tablero.getCelda(i, j);
+                    JButton btn = botones[i][j];
+                    
+                    if (!celda.revelada) {
+                        if (mostrar && celda.esMina) {
+                            btn.setText("💣");
+                            btn.setForeground(Color.MAGENTA);
+                            btn.setBorder(new LineBorder(Color.MAGENTA, 1));
+                        } else {
+                            btn.setBackground(COLOR_CELDA_OCULTA);
+                            btn.setBorder(BorderFactory.createBevelBorder(
+                                    javax.swing.border.BevelBorder.RAISED, 
+                                    new Color(60, 60, 100), Color.BLACK));
+                            
+                            if (celda.marcada) {
+                                btn.setText("🚩");
+                                btn.setForeground(COLOR_NEON_PRIMARIO);
+                            } else {
+                                btn.setText("");
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
         // Botón de Mute
         JToggleButton btnMute = new JToggleButton("🔊");
         btnMute.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 16));
@@ -124,75 +180,60 @@ public class ClienteGUI extends JFrame {
         btnMute.setBorder(BorderFactory.createLineBorder(Color.WHITE, 1));
         btnMute.setPreferredSize(new Dimension(40, 25));
         
-        // Lógica del botón Mute
         btnMute.addActionListener(e -> {
             if (btnMute.isSelected()) {
                 btnMute.setText("🔇");
                 btnMute.setBackground(Color.RED);
-                detenerMusica(); // Método que crearemos abajo
+                detenerMusica(); 
             } else {
                 btnMute.setText("🔊");
                 btnMute.setBackground(COLOR_FONDO);
-                reproducirMusica(); // Tu método existente
+                reproducirMusica(); 
             }
         });
 
+        panelDerecho.add(btnVerMinas);
         panelDerecho.add(lblTiempo);
         panelDerecho.add(btnMute);
 
         panelSuperior.add(lblInfo, BorderLayout.WEST);
-        panelSuperior.add(panelDerecho, BorderLayout.EAST); // Agregamos el panel derecho en lugar de solo el label
+        panelSuperior.add(panelDerecho, BorderLayout.EAST);
         
         add(panelSuperior, BorderLayout.NORTH);
 
-        // 4. PANEL DE JUEGO (Centro) - MEJORADO CON TEXTOS Y GIF DE FONDO
-        // NUEVO: Sobreescribimos el JPanel para dibujar el GIF en el fondo
+        // 4. PANEL DE JUEGO (Centro)
         panelJuego = new JPanel() {
             @Override
             protected void paintComponent(Graphics g) {
                 super.paintComponent(g); 
-                
-                // Solo dibujamos el GIF de ritmo si los botones (tablero) no han sido inicializados (estado de espera)
                 if (gifFondoBeat != null && botones == null) { 
                     Graphics2D g2d = (Graphics2D) g.create();
-                    // Configurar transparencia (50%)
                     g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.5f));
-                    // Dibujar imagen estirada para llenar el fondo
                     g2d.drawImage(gifFondoBeat, 0, 0, getWidth(), getHeight(), this);
                     g2d.dispose();
                 }
             }
         };
-        // FIN NUEVO SOBREESCRITO
         
         panelJuego.setBackground(COLOR_FONDO); 
         
-        // CAMBIO: Usamos BoxLayout Vertical para apilar GIF y Textos
-        panelJuego.setLayout(new BoxLayout(panelJuego, BoxLayout.Y_AXIS));
-        panelJuego.setBorder(BorderFactory.createEmptyBorder(50, 20, 50, 20));
+        // --- AQUÍ ESTÁ EL CENTRADO DE LA PANTALLA DE ESPERA ---
+        panelJuego.setLayout(new GridBagLayout());
         
-        // Espacio flexible arriba (empuja todo al centro)
-        panelJuego.add(Box.createVerticalGlue());
+        JPanel panelEsperaContenido = new JPanel();
+        panelEsperaContenido.setLayout(new BoxLayout(panelEsperaContenido, BoxLayout.Y_AXIS));
+        panelEsperaContenido.setOpaque(false); 
 
-        // --- CARGAR GIF (Tu lógica original adaptada) ---
         try {
             java.net.URL urlGif = getClass().getResource("/proyecto/poo/recursos/penguin.gif");
-            
             if (urlGif != null) {
                 JLabel lblGif = new JLabel(new ImageIcon(urlGif));
-                // Importante para que se centre en BoxLayout
                 lblGif.setAlignmentX(Component.CENTER_ALIGNMENT); 
-                panelJuego.add(lblGif);
-            } else {
-                System.out.println("No se encontró penguin.gif en recursos");
+                panelEsperaContenido.add(lblGif);
             }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        // ----------------------------------
+        } catch (Exception e) {}
 
-        // --- NUEVO: TEXTOS DE AMBIENTACIÓN ---
-        panelJuego.add(Box.createVerticalStrut(20)); // Espacio debajo del GIF
+        panelEsperaContenido.add(Box.createVerticalStrut(20));
 
         JLabel lblWait1 = new JLabel("ESCANEANDO RED...");
         lblWait1.setFont(new Font("Monospaced", Font.BOLD, 24));
@@ -204,12 +245,11 @@ public class ClienteGUI extends JFrame {
         lblWait2.setForeground(Color.GRAY);
         lblWait2.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        panelJuego.add(lblWait1);
-        panelJuego.add(Box.createVerticalStrut(10));
-        panelJuego.add(lblWait2);
+        panelEsperaContenido.add(lblWait1);
+        panelEsperaContenido.add(Box.createVerticalStrut(10));
+        panelEsperaContenido.add(lblWait2);
         
-        // Espacio flexible abajo
-        panelJuego.add(Box.createVerticalGlue());
+        panelJuego.add(panelEsperaContenido); // Agregamos el contenido centrado
 
         add(panelJuego, BorderLayout.CENTER);
 
@@ -221,36 +261,44 @@ public class ClienteGUI extends JFrame {
             lblTiempo.setText(String.format("TIEMPO: %02d:%02d ", min, seg));
         });
 
-        // 6. NUEVO: TIMER PARPADEO (Efecto Retro)
+        // 6. TIMER PARPADEO
         timerEspera = new javax.swing.Timer(700, e -> {
               Color actual = lblInfo.getForeground();
               if (actual.equals(COLOR_NEON_SECUNDARIO)) lblInfo.setForeground(Color.WHITE);
               else lblInfo.setForeground(COLOR_NEON_SECUNDARIO);
         });
-        timerEspera.start(); // Inicia parpadeo inmediatamente
+        timerEspera.start(); 
         
-        //setExtendedState(JFrame.MAXIMIZED_BOTH);
-        setSize(1820, 980);
-        setLocationRelativeTo(null);
+        this.setUndecorated(false); 
+        this.setExtendedState(JFrame.MAXIMIZED_BOTH); 
+        this.setVisible(true);
     }
 
     public void iniciarConexion() {
-        new Thread(() -> {
-            try {
-                socket = new Socket("localhost", 4444);
-                out = new ObjectOutputStream(socket.getOutputStream());
-                in = new ObjectInputStream(socket.getInputStream());
+            new Thread(() -> {
+                try {
+                    // Si usas IP dinámica, asegúrate de pedirla o ponerla aquí
+                    socket = new Socket("localhost", 4444);
+                    out = new ObjectOutputStream(socket.getOutputStream());
 
-                while(true) {
-                    Mensaje msj = (Mensaje) in.readObject();
-                    procesarMensaje(msj);
+                    // --- CAMBIO CLAVE: ENVIAR EL NOMBRE AL CONECTAR ---
+                    // Enviamos el nombre que capturaste en el Login al servidor
+                    out.writeObject(new Mensaje("LOGIN", nombreJugador));
+                    out.flush();
+                    // --------------------------------------------------
+
+                    in = new ObjectInputStream(socket.getInputStream());
+
+                    while(true) {
+                        Mensaje msj = (Mensaje) in.readObject();
+                        procesarMensaje(msj);
+                    }
+                } catch(Exception e) {
+                    lblInfo.setText(" ERROR DE CONEXIÓN");
+                    lblInfo.setForeground(Color.RED);
+                    if(timerEspera != null) timerEspera.stop(); 
                 }
-            } catch(Exception e) {
-                lblInfo.setText(" ERROR DE CONEXIÓN");
-                lblInfo.setForeground(Color.RED);
-                if(timerEspera != null) timerEspera.stop(); // Parar parpadeo si falla
-            }
-        }).start();
+            }).start();
     }
 
     private void procesarMensaje(Mensaje msj) {
@@ -265,15 +313,13 @@ public class ClienteGUI extends JFrame {
                     lblInfo.setText(" " + msj.getContenido().toString().toUpperCase());
                     break;
                 case "INICIO":
-                    // Detener efectos de espera
                     if (timerEspera != null) timerEspera.stop();
                     lblInfo.setForeground(COLOR_NEON_SECUNDARIO);
 
                     segundos = 0; 
                     timer.start(); 
                     this.tablero = (Tablero) msj.getContenido();
-                    pintarTableroEstilizado();
-                    // Importante: forzar un repintado para que el paintComponent se actualice y deje de dibujar el GIF de ritmo
+                    pintarTableroEstilizado(); // Dibuja el tablero
                     panelJuego.repaint();
                     break;
                 case "UPDATE":
@@ -303,44 +349,82 @@ public class ClienteGUI extends JFrame {
                     JOptionPane.showMessageDialog(this, msj.getContenido());
                     preguntarReinicio();
                     break;
+                    
+                case "ABANDONO":
+                    timer.stop();
+                    JOptionPane.showMessageDialog(this, 
+                        msj.getContenido(), 
+                        "Fin de la conexión", 
+                        JOptionPane.ERROR_MESSAGE);
+                    System.exit(0); 
+                    break;
             }
         });
     }
     
-    // Método para construir el tablero con estilo
+    // --- MÉTODO PARA CONSTRUIR EL TABLERO FLOTANTE (Centrado y Cuadrado) ---
     private void pintarTableroEstilizado() {
         int f = tablero.getFilas();
         int c = tablero.getColumnas();
         
-        if (botones == null || botones.length != f) {
-            panelJuego.removeAll();
-            panelJuego.setLayout(new GridLayout(f, c, 2, 2)); 
-            panelJuego.setBackground(COLOR_NEON_PRIMARIO); 
-            panelJuego.setBorder(BorderFactory.createCompoundBorder(
-        // Borde exterior grueso (como la caja del arcade)
-        BorderFactory.createEmptyBorder(15, 15, 15, 15), 
-        BorderFactory.createCompoundBorder(
-            // Borde secundario interno (efecto neón exterior)
-            BorderFactory.createLineBorder(COLOR_NEON_PRIMARIO, 3), 
-            // Borde espaciador o sombra interior
-            BorderFactory.createLineBorder(COLOR_FONDO, 5) 
-        )
-    ));
+        // 1. Limpiamos y preparamos la "Mesa"
+        panelJuego.removeAll();
+        // Usamos GridBagLayout para centrar lo que pongamos dentro
+        panelJuego.setLayout(new GridBagLayout()); 
+        panelJuego.setBackground(COLOR_FONDO); // Fondo oscuro normal
+        panelJuego.setBorder(null); 
 
-    botones = new JButton[f][c];
-            
-            for(int i=0; i<f; i++) {
-                for(int j=0; j<c; j++) {
-                    JButton btn = crearBotonRetro(i, j);
-                    botones[i][j] = btn;
-                    panelJuego.add(btn);
+        // 2. CÁLCULO PARA QUE SEA CUADRADO Y QUEPA EN PANTALLA
+        Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+        // Le quitamos unos 200px para la cabecera y barra de tareas
+        int alturaDisponible = screenSize.height - 200; 
+        
+        int ladoBoton = alturaDisponible / f;
+        
+        // Límites para que no se deforme en extremos
+        if (ladoBoton > 60) ladoBoton = 60; // Máximo
+        if (ladoBoton < 30) ladoBoton = 30; // Mínimo
+        
+        Dimension tamanoCuadrado = new Dimension(ladoBoton, ladoBoton);
+
+        // 3. Creamos el CONTENEDOR DEL TABLERO (Flotante)
+        JPanel contenedorTablero = new JPanel();
+        contenedorTablero.setLayout(new GridLayout(f, c, 2, 2)); 
+        contenedorTablero.setBackground(COLOR_NEON_PRIMARIO); // Líneas neón entre botones
+        
+        contenedorTablero.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createEmptyBorder(10, 10, 10, 10), 
+            BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(COLOR_NEON_PRIMARIO, 3), 
+                BorderFactory.createLineBorder(COLOR_FONDO, 5) 
+            )
+        ));
+
+        botones = new JButton[f][c];
+        
+        for(int i=0; i<f; i++) {
+            for(int j=0; j<c; j++) {
+                JButton btn = crearBotonRetro(i, j);
+                btn.setPreferredSize(tamanoCuadrado); // FORZAMOS CUADRADO
+                
+                // Ajuste de fuente para tableros densos
+                if (ladoBoton < 40) {
+                    btn.setFont(btn.getFont().deriveFont(12f));
                 }
+                
+                botones[i][j] = btn;
+                contenedorTablero.add(btn);
             }
-            panelJuego.revalidate();
-            this.pack(); 
-            this.setLocationRelativeTo(null);
         }
+        
+        // 4. Agregamos el tablero al centro del panel (flotante)
+        panelJuego.add(contenedorTablero);
 
+        // 5. Refrescamos
+        panelJuego.revalidate();
+        panelJuego.repaint();
+        
+        // 6. Actualizamos los estados (Minas, números)
         for(int i=0; i<f; i++) {
             for(int j=0; j<c; j++) {
                 actualizarEstadoBoton(botones[i][j], tablero.getCelda(i, j));
@@ -351,7 +435,7 @@ public class ClienteGUI extends JFrame {
     private JButton crearBotonRetro(int r, int c) {
         JButton btn = new JButton();
         btn.setFocusPainted(false);
-        btn.setPreferredSize(new Dimension(40, 40));
+        // btn.setPreferredSize... ya lo hacemos arriba
         btn.setFont(FUENTE_RETRO);
         
         btn.setBorder(BorderFactory.createBevelBorder(BevelBorder.RAISED, 
@@ -409,15 +493,17 @@ public class ClienteGUI extends JFrame {
             btn.setBackground(COLOR_CELDA_OCULTA);
             btn.setBorder(BorderFactory.createBevelBorder(BevelBorder.RAISED, 
                                  new Color(60, 60, 100), Color.BLACK));
-            btn.setFont(FUENTE_EMOJI);
             
             if (celda.marcada) {
                 btn.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 24));
                 btn.setText("🚩");
                 btn.setForeground(COLOR_NEON_PRIMARIO);
             } else {
-                btn.setFont(FUENTE_EMOJI);
-                btn.setText("");
+                // Checamos si no es una mina revelada por trampa para limpiar
+                if (!btn.getText().equals("💣")) {
+                    btn.setFont(FUENTE_EMOJI);
+                    btn.setText("");
+                }
             }
         }
     }
@@ -455,14 +541,12 @@ public class ClienteGUI extends JFrame {
           }
     }
 
-    // --- MÉTODO CERRAR APLICACIÓN (ACTUALIZADO) ---
     private void cerrarAplicacion() {
         try {
-            // Detenemos y liberamos el clip estático
             if (clipMusica != null) {
                 clipMusica.stop();
                 clipMusica.close();
-                clipMusica = null; // Liberar la referencia estática
+                clipMusica = null; 
             }
             if (socket != null) socket.close(); 
             if (timer != null) timer.stop();   
@@ -470,229 +554,192 @@ public class ClienteGUI extends JFrame {
         System.exit(0); 
     }
     
-    // --- MÉTODO PARA CREAR EL DIÁLOGO DE LOGIN PERSONALIZADO ---
     private String pedirNombrePersonalizado() {
-    // 1. Crear el diálogo
-    JDialog dialog = new JDialog((Frame)null, "Login", true);
-    dialog.setUndecorated(true); // Mantenemos esto para quitar la barra fea de Windows
-    dialog.setSize(400, 280); // Un poco más alto para que quepa la barra
-    dialog.setLocationRelativeTo(null);
-    
-    // Contenedor principal del diálogo
-    JPanel mainContainer = new JPanel(new BorderLayout());
-    mainContainer.setBorder(new LineBorder(COLOR_NEON_PRIMARIO, 2)); // Borde externo neón
+        JDialog dialog = new JDialog((Frame)null, "Login", true);
+        dialog.setUndecorated(true); 
+        dialog.setSize(400, 280); 
+        dialog.setLocationRelativeTo(null);
+        
+        JPanel mainContainer = new JPanel(new BorderLayout());
+        mainContainer.setBorder(new LineBorder(COLOR_NEON_PRIMARIO, 2)); 
 
-    // --- NUEVO: BARRA DE TÍTULO PERSONALIZADA ---
-    JPanel barraTitulo = new JPanel(new BorderLayout());
-    barraTitulo.setBackground(new Color(20, 10, 50)); // Un poco más claro que el fondo
-    barraTitulo.setPreferredSize(new Dimension(400, 30));
-    barraTitulo.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, COLOR_NEON_PRIMARIO));
+        JPanel barraTitulo = new JPanel(new BorderLayout());
+        barraTitulo.setBackground(new Color(20, 10, 50)); 
+        barraTitulo.setPreferredSize(new Dimension(400, 30));
+        barraTitulo.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, COLOR_NEON_PRIMARIO));
 
-    // Etiqueta del título
-    JLabel titleLabel = new JLabel("  LOGIN DE USUARIO");
-    titleLabel.setForeground(Color.CYAN);
-    titleLabel.setFont(new Font("Monospaced", Font.BOLD, 12));
-    
-    // Panel para los botones (Mute y Cerrar)
-    JPanel panelBotones = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
-    panelBotones.setOpaque(false);
+        JLabel titleLabel = new JLabel("  LOGIN DE USUARIO");
+        titleLabel.setForeground(Color.CYAN);
+        titleLabel.setFont(new Font("Monospaced", Font.BOLD, 12));
+        
+        JPanel panelBotones = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
+        panelBotones.setOpaque(false);
 
-    // Botón Mute en la barra
-    JButton btnMuteBarra = new JButton("🔊");
-    btnMuteBarra.setForeground(Color.WHITE);
-    btnMuteBarra.setBackground(new Color(20, 10, 50));
-    btnMuteBarra.setBorderPainted(false);
-    btnMuteBarra.setFocusPainted(false);
-    btnMuteBarra.setPreferredSize(new Dimension(40, 30));
-    btnMuteBarra.addActionListener(e -> {
-        if (btnMuteBarra.getText().equals("🔊")) {
-            btnMuteBarra.setText("🔇");
-            btnMuteBarra.setForeground(Color.RED);
-            detenerMusica(); // Usamos el método estático que creamos antes
-        } else {
-            btnMuteBarra.setText("🔊");
-            btnMuteBarra.setForeground(Color.WHITE);
-            reproducirMusica();
-        }
-    });
-
-    // Botón Cerrar (X)
-    JButton btnCerrar = new JButton("X");
-    btnCerrar.setForeground(Color.WHITE);
-    btnCerrar.setBackground(new Color(200, 50, 50)); // Rojo para cerrar
-    btnCerrar.setBorderPainted(false);
-    btnCerrar.setFocusPainted(false);
-    btnCerrar.setPreferredSize(new Dimension(45, 30));
-    btnCerrar.addActionListener(e -> System.exit(0)); // Cierra toda la app si salen del login
-
-    // Efecto Hover para el botón cerrar
-    btnCerrar.addMouseListener(new MouseAdapter() {
-        public void mouseEntered(MouseEvent e) { btnCerrar.setBackground(Color.RED); }
-        public void mouseExited(MouseEvent e) { btnCerrar.setBackground(new Color(200, 50, 50)); }
-    });
-
-    panelBotones.add(btnMuteBarra);
-    panelBotones.add(btnCerrar);
-
-    barraTitulo.add(titleLabel, BorderLayout.WEST);
-    barraTitulo.add(panelBotones, BorderLayout.EAST);
-
-    // --- LOGICA PARA ARRASTRAR LA VENTANA (Esencial al usar Undecorated) ---
-    MouseAdapter dragListener = new MouseAdapter() {
-        private int pX, pY;
-        public void mousePressed(MouseEvent e) {
-            pX = e.getX();
-            pY = e.getY();
-        }
-        public void mouseDragged(MouseEvent e) {
-            dialog.setLocation(dialog.getLocation().x + e.getX() - pX,
-                               dialog.getLocation().y + e.getY() - pY);
-        }
-    };
-    barraTitulo.addMouseListener(dragListener);
-    barraTitulo.addMouseMotionListener(dragListener);
-    
-    // Agregamos la barra al norte del contenedor principal
-    mainContainer.add(barraTitulo, BorderLayout.NORTH);
-
-    // ---------------------------------------------------------
-
-    final StringBuilder nombreIngresado = new StringBuilder("");
-
-    // --- CARGA DEL GIF DE FONDO (Tu código original intacto) ---
-    ImageIcon iconFondo = null;
-    try {
-        java.net.URL url = getClass().getResource("/proyecto/poo/recursos/beat.gif");
-        if (url != null) iconFondo = new ImageIcon(url);
-    } catch(Exception e){}
-    
-    final Image gifFondo = (iconFondo != null) ? iconFondo.getImage() : null;
-
-    // PANEL DEL FORMULARIO (Tu código original con un pequeño ajuste en el borde)
-    JPanel panelFormulario = new JPanel(new GridLayout(4, 1, 10, 10)) {
-        @Override
-        protected void paintComponent(Graphics g) {
-            super.paintComponent(g); 
-            if (gifFondo != null) {
-                Graphics2D g2d = (Graphics2D) g.create();
-                g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.5f));
-                g2d.drawImage(gifFondo, 0, 0, getWidth(), getHeight(), this);
-                g2d.dispose();
+        JButton btnMuteBarra = new JButton("🔊");
+        btnMuteBarra.setForeground(Color.WHITE);
+        btnMuteBarra.setBackground(new Color(20, 10, 50));
+        btnMuteBarra.setBorderPainted(false);
+        btnMuteBarra.setFocusPainted(false);
+        btnMuteBarra.setPreferredSize(new Dimension(40, 30));
+        btnMuteBarra.addActionListener(e -> {
+            if (btnMuteBarra.getText().equals("🔊")) {
+                btnMuteBarra.setText("🔇");
+                btnMuteBarra.setForeground(Color.RED);
+                detenerMusica(); 
+            } else {
+                btnMuteBarra.setText("🔊");
+                btnMuteBarra.setForeground(Color.WHITE);
+                reproducirMusica();
             }
-        }
-    };
-    
-    panelFormulario.setBackground(COLOR_FONDO);
-    // Ajustamos el borde para que no choque con la barra de arriba
-    panelFormulario.setBorder(BorderFactory.createEmptyBorder(10, 20, 20, 20));
+        });
 
-    // Componentes (Tu código original)
-    JLabel lblTitulo = new JLabel("INGRESA TU NOMBRE", SwingConstants.CENTER);
-    lblTitulo.setFont(new Font("Monospaced", Font.BOLD, 20));
-    lblTitulo.setForeground(COLOR_NEON_SECUNDARIO);
-    
-    JTextField txtNombre = new JTextField();
-    txtNombre.setFont(new Font("Monospaced", Font.BOLD, 18));
-    txtNombre.setBackground(new Color(30, 30, 60, 200)); 
-    txtNombre.setForeground(Color.WHITE);
-    txtNombre.setCaretColor(Color.WHITE);
-    txtNombre.setBorder(BorderFactory.createLineBorder(Color.GRAY));
-    txtNombre.setHorizontalAlignment(JTextField.CENTER);
+        JButton btnCerrar = new JButton("X");
+        btnCerrar.setForeground(Color.WHITE);
+        btnCerrar.setBackground(new Color(200, 50, 50)); 
+        btnCerrar.setBorderPainted(false);
+        btnCerrar.setFocusPainted(false);
+        btnCerrar.setPreferredSize(new Dimension(45, 30));
+        btnCerrar.addActionListener(e -> System.exit(0)); 
 
-    JButton btnJugar = new JButton("INSERT COIN (JUGAR)");
-    btnJugar.setFont(new Font("Monospaced", Font.BOLD, 16));
-    btnJugar.setBackground(new Color(0, 100, 0));
-    btnJugar.setForeground(Color.WHITE);
-    btnJugar.setFocusPainted(false);
-    btnJugar.setBorder(BorderFactory.createBevelBorder(BevelBorder.RAISED));
-    
-    btnJugar.addMouseListener(new MouseAdapter() {
-        public void mouseEntered(MouseEvent e) {
-            btnJugar.setBackground(new Color(0, 200, 0));
-            btnJugar.setForeground(Color.BLACK);
-            btnJugar.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        }
-        public void mouseExited(MouseEvent e) {
-            btnJugar.setBackground(new Color(0, 100, 0));
-            btnJugar.setForeground(Color.WHITE);
-        }
-    });
+        btnCerrar.addMouseListener(new MouseAdapter() {
+            public void mouseEntered(MouseEvent e) { btnCerrar.setBackground(Color.RED); }
+            public void mouseExited(MouseEvent e) { btnCerrar.setBackground(new Color(200, 50, 50)); }
+        });
 
-    btnJugar.addActionListener(e -> {
-        if (!txtNombre.getText().trim().isEmpty()) {
-            nombreIngresado.append(txtNombre.getText().trim());
-            dialog.dispose();
-        } else {
-            txtNombre.setBorder(new LineBorder(Color.RED, 2));
-        }
-    });
-    
-    txtNombre.addActionListener(e -> btnJugar.doClick());
+        panelBotones.add(btnMuteBarra);
+        panelBotones.add(btnCerrar);
 
-    panelFormulario.add(lblTitulo);
-    panelFormulario.add(new JLabel(""));
-    panelFormulario.add(txtNombre);
-    panelFormulario.add(btnJugar);
-    
-    // Agregamos el formulario al centro del contenedor
-    mainContainer.add(panelFormulario, BorderLayout.CENTER);
-    
-    dialog.add(mainContainer);
-    dialog.setVisible(true);
+        barraTitulo.add(titleLabel, BorderLayout.WEST);
+        barraTitulo.add(panelBotones, BorderLayout.EAST);
 
-    return nombreIngresado.toString();
-}
-    
-    // --- MÉTODO PARA REPRODUCIR MÚSICA EN BUCLE (STATIC Y ESTRICTO) ---
-public static void reproducirMusica() {
-    try {
-        // 1. VERIFICACIÓN ESTRICTA: Si clipMusica ya se inicializó, salimos.
-        if (clipMusica != null) {
-            // Aseguramos que el clip esté sonando (en caso de que se haya detenido)
-            if (!clipMusica.isRunning()) {
+        MouseAdapter dragListener = new MouseAdapter() {
+            private int pX, pY;
+            public void mousePressed(MouseEvent e) {
+                pX = e.getX();
+                pY = e.getY();
+            }
+            public void mouseDragged(MouseEvent e) {
+                dialog.setLocation(dialog.getLocation().x + e.getX() - pX,
+                                   dialog.getLocation().y + e.getY() - pY);
+            }
+        };
+        barraTitulo.addMouseListener(dragListener);
+        barraTitulo.addMouseMotionListener(dragListener);
+        
+        mainContainer.add(barraTitulo, BorderLayout.NORTH);
+
+        final StringBuilder nombreIngresado = new StringBuilder("");
+
+        ImageIcon iconFondo = null;
+        try {
+            java.net.URL url = getClass().getResource("/proyecto/poo/recursos/beat.gif");
+            if (url != null) iconFondo = new ImageIcon(url);
+        } catch(Exception e){}
+        
+        final Image gifFondo = (iconFondo != null) ? iconFondo.getImage() : null;
+
+        JPanel panelFormulario = new JPanel(new GridLayout(4, 1, 10, 10)) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g); 
+                if (gifFondo != null) {
+                    Graphics2D g2d = (Graphics2D) g.create();
+                    g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.5f));
+                    g2d.drawImage(gifFondo, 0, 0, getWidth(), getHeight(), this);
+                    g2d.dispose();
+                }
+            }
+        };
+        
+        panelFormulario.setBackground(COLOR_FONDO);
+        panelFormulario.setBorder(BorderFactory.createEmptyBorder(10, 20, 20, 20));
+
+        JLabel lblTitulo = new JLabel("INGRESA TU NOMBRE", SwingConstants.CENTER);
+        lblTitulo.setFont(new Font("Monospaced", Font.BOLD, 20));
+        lblTitulo.setForeground(COLOR_NEON_SECUNDARIO);
+        
+        JTextField txtNombre = new JTextField();
+        txtNombre.setFont(new Font("Monospaced", Font.BOLD, 18));
+        txtNombre.setBackground(new Color(30, 30, 60, 200)); 
+        txtNombre.setForeground(Color.WHITE);
+        txtNombre.setCaretColor(Color.WHITE);
+        txtNombre.setBorder(BorderFactory.createLineBorder(Color.GRAY));
+        txtNombre.setHorizontalAlignment(JTextField.CENTER);
+
+        JButton btnJugar = new JButton("INSERT COIN (JUGAR)");
+        btnJugar.setFont(new Font("Monospaced", Font.BOLD, 16));
+        btnJugar.setBackground(new Color(0, 100, 0));
+        btnJugar.setForeground(Color.WHITE);
+        btnJugar.setFocusPainted(false);
+        btnJugar.setBorder(BorderFactory.createBevelBorder(BevelBorder.RAISED));
+        
+        btnJugar.addMouseListener(new MouseAdapter() {
+            public void mouseEntered(MouseEvent e) {
+                btnJugar.setBackground(new Color(0, 200, 0));
+                btnJugar.setForeground(Color.BLACK);
+                btnJugar.setCursor(new Cursor(Cursor.HAND_CURSOR));
+            }
+            public void mouseExited(MouseEvent e) {
+                btnJugar.setBackground(new Color(0, 100, 0));
+                btnJugar.setForeground(Color.WHITE);
+            }
+        });
+
+        btnJugar.addActionListener(e -> {
+            if (!txtNombre.getText().trim().isEmpty()) {
+                nombreIngresado.append(txtNombre.getText().trim());
+                dialog.dispose();
+            } else {
+                txtNombre.setBorder(new LineBorder(Color.RED, 2));
+            }
+        });
+        
+        txtNombre.addActionListener(e -> btnJugar.doClick());
+
+        panelFormulario.add(lblTitulo);
+        panelFormulario.add(new JLabel(""));
+        panelFormulario.add(txtNombre);
+        panelFormulario.add(btnJugar);
+        
+        mainContainer.add(panelFormulario, BorderLayout.CENTER);
+        
+        dialog.add(mainContainer);
+        dialog.setVisible(true);
+
+        return nombreIngresado.toString();
+    }
+        
+    public static void reproducirMusica() {
+        try {
+            if (clipMusica != null) {
+                if (!clipMusica.isRunning()) {
+                    clipMusica.loop(Clip.LOOP_CONTINUOUSLY);
+                    clipMusica.start();
+                }
+                return; 
+            }
+            
+            java.net.URL urlMusica = ClienteGUI.class.getResource("/proyecto/poo/recursos/Blippblipp.wav");
+            
+            if (urlMusica != null) {
+                AudioInputStream audioInput = AudioSystem.getAudioInputStream(urlMusica);
+                clipMusica = AudioSystem.getClip(); 
+                clipMusica.open(audioInput);
+                try {
+                    FloatControl gainControl = (FloatControl) clipMusica.getControl(FloatControl.Type.MASTER_GAIN);
+                    gainControl.setValue(-10.0f); 
+                } catch (Exception e) {}
                 clipMusica.loop(Clip.LOOP_CONTINUOUSLY);
                 clipMusica.start();
+            } else {
+                  System.out.println("No se encontró la canción Blippblipp.wav en la ruta de recursos.");
             }
-            return; 
-        }
-        
-        // 2. Si LLEGAMOS AQUÍ, es la PRIMERA VEZ que se llama.
-        
-        java.net.URL urlMusica = ClienteGUI.class.getResource("/proyecto/poo/recursos/Blippblipp.wav");
-        
-        if (urlMusica != null) {
-            AudioInputStream audioInput = AudioSystem.getAudioInputStream(urlMusica);
-            
-            // Aquí es donde clipMusica recibe su primera y única inicialización.
-            clipMusica = AudioSystem.getClip(); 
-            clipMusica.open(audioInput);
-            
-            // Ajustar volumen (Opcional)
-            try {
-                FloatControl gainControl = (FloatControl) clipMusica.getControl(FloatControl.Type.MASTER_GAIN);
-                gainControl.setValue(-10.0f); // Reduce el volumen en 10 decibelios
-            } catch (Exception e) {}
-            
-            // Iniciar el loop
-            clipMusica.loop(Clip.LOOP_CONTINUOUSLY);
-            clipMusica.start();
-            
-        } else {
-              System.out.println("No se encontró la canción Blippblipp.wav en la ruta de recursos.");
-        }
+        } catch (Exception e) {}
+    }
 
-    } catch (UnsupportedAudioFileException e) {
-        System.err.println("ERROR: Formato WAV no soportado. Debe ser PCM Lineal de 16-bit. SOLUCIÓN: Verifique con Audacity.");
-        // Opcional: e.printStackTrace();
-    } catch (Exception e) {
-        System.err.println("Error general al reproducir audio: " + e.getMessage());
-        // Opcional: e.printStackTrace();
+    public static void detenerMusica() {
+        if (clipMusica != null && clipMusica.isRunning()) {
+            clipMusica.stop();
+        }
     }
-}
-// Agrega esto debajo de tu método reproducirMusica()
-public static void detenerMusica() {
-    if (clipMusica != null && clipMusica.isRunning()) {
-        clipMusica.stop();
-    }
-}
 }
