@@ -27,11 +27,11 @@ public class ClienteGUI extends JFrame {
     private int segundos = 0;           
     private String nombreJugador;       
     
-    // VARIABLES PARA EL GIF DE FONDO
+
     private ImageIcon iconFondoBeat; 
     private Image gifFondoBeat;      
     
-    // --- PALETA DE COLORES "RETRO ARCADE" ---
+   
     private static final Color COLOR_FONDO = new Color(10, 5, 35); 
     private static final Color COLOR_NEON_PRIMARIO = new Color(180, 0, 255); 
     private static final Color COLOR_NEON_SECUNDARIO = new Color(0, 255, 255); 
@@ -49,10 +49,10 @@ public class ClienteGUI extends JFrame {
     };
 
     public ClienteGUI() {
-        // 0. INICIAR MÚSICA DE FONDO
+      
         reproducirMusica(); 
         
-        // CARGAR GIF DE FONDO "BEAT"
+
         try {
             java.net.URL url = getClass().getResource("/proyecto/poo/recursos/beat.gif");
             if (url != null) {
@@ -63,7 +63,7 @@ public class ClienteGUI extends JFrame {
             System.err.println("Error al cargar beat.gif: " + e.getMessage());
         }
         
-        // 1. PERSONALIZACIÓN (Look & Feel)
+
         try {
             UIManager.put("OptionPane.background", COLOR_FONDO);
             UIManager.put("Panel.background", COLOR_FONDO);
@@ -72,14 +72,14 @@ public class ClienteGUI extends JFrame {
             UIManager.put("Button.foreground", Color.WHITE);
         } catch(Exception e){}
 
-        // 2. LOGIN PERSONALIZADO
+
         nombreJugador = pedirNombrePersonalizado();
 
         if (nombreJugador.isEmpty()) {
             nombreJugador = "PLAYER_" + (int)(Math.random() * 1000);
         }
         
-        // Configuración de la ventana
+
         setTitle("BUSCAMINAS MULTIJUGADOR - " + nombreJugador);
         setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         getContentPane().setBackground(COLOR_FONDO);
@@ -92,7 +92,6 @@ public class ClienteGUI extends JFrame {
             }
         });
         
-        // 3. PANEL SUPERIOR (Marcador y Controles)
         JPanel panelSuperior = new JPanel(new BorderLayout());
         panelSuperior.setBackground(COLOR_FONDO);
         panelSuperior.setBorder(BorderFactory.createCompoundBorder(
@@ -105,7 +104,7 @@ public class ClienteGUI extends JFrame {
         lblInfo.setForeground(COLOR_NEON_SECUNDARIO);
         lblInfo.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 5));
         
-        // --- Panel derecho para agrupar Tiempo y Botones ---
+ 
         JPanel panelDerecho = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 0));
         panelDerecho.setOpaque(false); 
 
@@ -113,7 +112,7 @@ public class ClienteGUI extends JFrame {
         lblTiempo.setFont(FUENTE_RETRO);
         lblTiempo.setForeground(Color.WHITE);
         
-        // --- NUEVO BOTÓN: VER MINAS (TOGGLE / INTERRUPTOR) ---
+
         JButton btnVerMinas = new JButton("👁");
         btnVerMinas.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 16));
         btnVerMinas.setBackground(COLOR_FONDO);
@@ -123,7 +122,7 @@ public class ClienteGUI extends JFrame {
         btnVerMinas.setPreferredSize(new Dimension(40, 25));
         btnVerMinas.setToolTipText("Ver/Ocultar Minas (Trampa)");
         
-        // Variable "truco" para recordar el estado dentro del botón
+    
         final boolean[] trampaActiva = {false};
 
         btnVerMinas.addActionListener(e -> {
@@ -171,7 +170,7 @@ public class ClienteGUI extends JFrame {
             }
         });
 
-        // Botón de Mute
+    
         JToggleButton btnMute = new JToggleButton("🔊");
         btnMute.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 16));
         btnMute.setBackground(COLOR_FONDO);
@@ -201,7 +200,7 @@ public class ClienteGUI extends JFrame {
         
         add(panelSuperior, BorderLayout.NORTH);
 
-        // 4. PANEL DE JUEGO (Centro)
+
         panelJuego = new JPanel() {
             @Override
             protected void paintComponent(Graphics g) {
@@ -217,7 +216,7 @@ public class ClienteGUI extends JFrame {
         
         panelJuego.setBackground(COLOR_FONDO); 
         
-        // --- AQUÍ ESTÁ EL CENTRADO DE LA PANTALLA DE ESPERA ---
+
         panelJuego.setLayout(new GridBagLayout());
         
         JPanel panelEsperaContenido = new JPanel();
@@ -249,11 +248,11 @@ public class ClienteGUI extends JFrame {
         panelEsperaContenido.add(Box.createVerticalStrut(10));
         panelEsperaContenido.add(lblWait2);
         
-        panelJuego.add(panelEsperaContenido); // Agregamos el contenido centrado
+        panelJuego.add(panelEsperaContenido); 
 
         add(panelJuego, BorderLayout.CENTER);
 
-        // 5. TIMER JUEGO
+        
         timer = new javax.swing.Timer(1000, e -> {
             segundos++;
             long min = segundos / 60;
@@ -261,7 +260,7 @@ public class ClienteGUI extends JFrame {
             lblTiempo.setText(String.format("TIEMPO: %02d:%02d ", min, seg));
         });
 
-        // 6. TIMER PARPADEO
+    
         timerEspera = new javax.swing.Timer(700, e -> {
               Color actual = lblInfo.getForeground();
               if (actual.equals(COLOR_NEON_SECUNDARIO)) lblInfo.setForeground(Color.WHITE);
@@ -277,15 +276,15 @@ public class ClienteGUI extends JFrame {
     public void iniciarConexion() {
             new Thread(() -> {
                 try {
-                    // Si usas IP dinámica, asegúrate de pedirla o ponerla aquí
+                  
                     socket = new Socket("localhost", 4444);
                     out = new ObjectOutputStream(socket.getOutputStream());
 
-                    // --- CAMBIO CLAVE: ENVIAR EL NOMBRE AL CONECTAR ---
-                    // Enviamos el nombre que capturaste en el Login al servidor
+                  
+                    
                     out.writeObject(new Mensaje("LOGIN", nombreJugador));
                     out.flush();
-                    // --------------------------------------------------
+              
 
                     in = new ObjectInputStream(socket.getInputStream());
 
@@ -319,7 +318,7 @@ public class ClienteGUI extends JFrame {
                     segundos = 0; 
                     timer.start(); 
                     this.tablero = (Tablero) msj.getContenido();
-                    pintarTableroEstilizado(); // Dibuja el tablero
+                    pintarTableroEstilizado();
                     panelJuego.repaint();
                     break;
                 case "UPDATE":
@@ -362,35 +361,34 @@ public class ClienteGUI extends JFrame {
         });
     }
     
-    // --- MÉTODO PARA CONSTRUIR EL TABLERO FLOTANTE (Centrado y Cuadrado) ---
+   
     private void pintarTableroEstilizado() {
         int f = tablero.getFilas();
         int c = tablero.getColumnas();
         
-        // 1. Limpiamos y preparamos la "Mesa"
         panelJuego.removeAll();
-        // Usamos GridBagLayout para centrar lo que pongamos dentro
+        
         panelJuego.setLayout(new GridBagLayout()); 
-        panelJuego.setBackground(COLOR_FONDO); // Fondo oscuro normal
+        panelJuego.setBackground(COLOR_FONDO);
         panelJuego.setBorder(null); 
 
-        // 2. CÁLCULO PARA QUE SEA CUADRADO Y QUEPA EN PANTALLA
+        
         Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
-        // Le quitamos unos 200px para la cabecera y barra de tareas
+        
         int alturaDisponible = screenSize.height - 200; 
         
         int ladoBoton = alturaDisponible / f;
         
-        // Límites para que no se deforme en extremos
-        if (ladoBoton > 60) ladoBoton = 60; // Máximo
-        if (ladoBoton < 30) ladoBoton = 30; // Mínimo
+        
+        if (ladoBoton > 60) ladoBoton = 60;
+        if (ladoBoton < 30) ladoBoton = 30; 
         
         Dimension tamanoCuadrado = new Dimension(ladoBoton, ladoBoton);
 
-        // 3. Creamos el CONTENEDOR DEL TABLERO (Flotante)
+        
         JPanel contenedorTablero = new JPanel();
         contenedorTablero.setLayout(new GridLayout(f, c, 2, 2)); 
-        contenedorTablero.setBackground(COLOR_NEON_PRIMARIO); // Líneas neón entre botones
+        contenedorTablero.setBackground(COLOR_NEON_PRIMARIO); 
         
         contenedorTablero.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createEmptyBorder(10, 10, 10, 10), 
@@ -405,9 +403,8 @@ public class ClienteGUI extends JFrame {
         for(int i=0; i<f; i++) {
             for(int j=0; j<c; j++) {
                 JButton btn = crearBotonRetro(i, j);
-                btn.setPreferredSize(tamanoCuadrado); // FORZAMOS CUADRADO
+                btn.setPreferredSize(tamanoCuadrado); 
                 
-                // Ajuste de fuente para tableros densos
                 if (ladoBoton < 40) {
                     btn.setFont(btn.getFont().deriveFont(12f));
                 }
@@ -417,14 +414,11 @@ public class ClienteGUI extends JFrame {
             }
         }
         
-        // 4. Agregamos el tablero al centro del panel (flotante)
         panelJuego.add(contenedorTablero);
 
-        // 5. Refrescamos
         panelJuego.revalidate();
         panelJuego.repaint();
         
-        // 6. Actualizamos los estados (Minas, números)
         for(int i=0; i<f; i++) {
             for(int j=0; j<c; j++) {
                 actualizarEstadoBoton(botones[i][j], tablero.getCelda(i, j));
@@ -435,7 +429,6 @@ public class ClienteGUI extends JFrame {
     private JButton crearBotonRetro(int r, int c) {
         JButton btn = new JButton();
         btn.setFocusPainted(false);
-        // btn.setPreferredSize... ya lo hacemos arriba
         btn.setFont(FUENTE_RETRO);
         
         btn.setBorder(BorderFactory.createBevelBorder(BevelBorder.RAISED, 
@@ -499,7 +492,6 @@ public class ClienteGUI extends JFrame {
                 btn.setText("🚩");
                 btn.setForeground(COLOR_NEON_PRIMARIO);
             } else {
-                // Checamos si no es una mina revelada por trampa para limpiar
                 if (!btn.getText().equals("💣")) {
                     btn.setFont(FUENTE_EMOJI);
                     btn.setText("");

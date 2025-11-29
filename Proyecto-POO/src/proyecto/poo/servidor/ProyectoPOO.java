@@ -7,7 +7,7 @@ import proyecto.poo.comunes.*;
 
 public class ProyectoPOO {
     private static final int PUERTO = 4444;
-    // Cola de espera para emparejar jugadores
+  
     private static List<Socket> espera = new ArrayList<>();
     private static List<ObjectOutputStream> esperaOut = new ArrayList<>();
 
@@ -26,14 +26,14 @@ public class ProyectoPOO {
                 
                 out.writeObject(new Mensaje("INFO", "Conectado. Esperando oponente..."));
                 
-                // Si hay 2, iniciamos partida
+     
                 if(espera.size() >= 2) {
                     Socket j1 = espera.remove(0);
                     Socket j2 = espera.remove(0);
                     ObjectOutputStream out1 = esperaOut.remove(0);
                     ObjectOutputStream out2 = esperaOut.remove(0);
                     
-                    // Unidad 2: Concurrencia (Hilo por partida)
+                   
                     Partida p = new Partida(j1, j2, out1, out2);
                     new Thread(p).start();
                 }

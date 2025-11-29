@@ -36,8 +36,6 @@ public class Partida implements Runnable {
             in1 = new ObjectInputStream(s1.getInputStream());
             in2 = new ObjectInputStream(s2.getInputStream());
 
-            // --- CAMBIO CLAVE: LEER NOMBRES AL INICIO ---
-            // Leemos el primer mensaje que envía cada cliente, que debe ser el LOGIN
             Mensaje loginJ1 = (Mensaje) in1.readObject();
             if (loginJ1.getTipo().equals("LOGIN")) {
                 nombreJ1 = (String) loginJ1.getContenido();
@@ -161,18 +159,18 @@ public class Partida implements Runnable {
             String msgPerdedor = "¡BOOM! Has explotado una mina.\nHas PERDIDO.";
             String msgGanador  = "¡Tu oponente ha explotado una mina!\n¡Has GANADO!";
 
-            // USAMOS LAS VARIABLES DE NOMBRES REALES AQUÍ
+            
             if (esJ1) {
-                // J1 Explotó -> J1 Pierde, J2 Gana
+               
                 out1.reset(); out1.writeObject(new Mensaje("GAMEOVER", msgPerdedor)); out1.flush();
                 out2.reset(); out2.writeObject(new Mensaje("GAMEOVER", msgGanador)); out2.flush();
-                // Guardar con nombres reales
+             
                 GestorArchivos.guardarPartida(nombreJ2, nombreJ1, dificultadActual, contadorMovimientos);
             } else {
-                // J2 Explotó -> J2 Pierde, J1 Gana
+              
                 out1.reset(); out1.writeObject(new Mensaje("GAMEOVER", msgGanador)); out1.flush();
                 out2.reset(); out2.writeObject(new Mensaje("GAMEOVER", msgPerdedor)); out2.flush();
-                // Guardar con nombres reales
+            
                 GestorArchivos.guardarPartida(nombreJ1, nombreJ2, dificultadActual, contadorMovimientos);
             }
             juegoTerminado = true; 
@@ -183,7 +181,7 @@ public class Partida implements Runnable {
                 String perdedor = esJ1 ? nombreJ2 : nombreJ1;
 
                 enviarAmbos(new Mensaje("GAMEOVER", "¡FELICIDADES!\n" + ganador + " ha despejado el campo."));
-                // Guardar con nombres reales
+       
                 GestorArchivos.guardarPartida(ganador, perdedor, dificultadActual, contadorMovimientos);
                 juegoTerminado = true; 
             } else {

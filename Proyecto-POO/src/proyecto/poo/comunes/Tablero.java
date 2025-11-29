@@ -13,7 +13,7 @@ public class Tablero implements Serializable {
         public boolean esMina;
         public boolean revelada;
         public int minasAlrededor;
-        public boolean marcada; // Bandera
+        public boolean marcada; 
     }
 
     public Tablero(int filas, int columnas, int minas) {
@@ -26,7 +26,6 @@ public class Tablero implements Serializable {
         calcularNumeros();
     }
 
-    // Constructor de copia
     public Tablero(Tablero t) {
         this.filas = t.filas;
         this.columnas = t.columnas;
@@ -43,11 +42,7 @@ public class Tablero implements Serializable {
         }
     }
 
-    /**
-     * Lógica principal del Buscaminas "Real".
-     * Si es vacío (0), revela recursivamente a los vecinos.
-     * Retorna true si explotó una mina.
-     */
+   
     public boolean revelarCelda(int r, int c) {
         if (r < 0 || r >= filas || c < 0 || c >= columnas) return false;
         Celda celda = celdas[r][c];
@@ -60,7 +55,6 @@ public class Tablero implements Serializable {
             return true; // ¡Boom!
         }
 
-        // Si es un 0 (vacío), expandir automáticamente (Flood Fill)
         if (celda.minasAlrededor == 0) {
             for (int i = r - 1; i <= r + 1; i++) {
                 for (int j = c - 1; j <= c + 1; j++) {
@@ -121,7 +115,7 @@ public class Tablero implements Serializable {
     public int getColumnas() { return columnas; }
     public Celda getCelda(int r, int c) { return celdas[r][c]; }
     
-    // Poner esto al final de Tablero.java, antes del último cierre de llave }
+  
     public boolean esVictoria() {
         int celdasSegurasReveladas = 0;
         int totalCeldasSeguras = (filas * columnas) - minas;
@@ -136,7 +130,7 @@ public class Tablero implements Serializable {
         return celdasSegurasReveladas == totalCeldasSeguras;
     }
     
-    //este metodo lo que hace es que si llegamos a perder mostrara las minas en el lugar que se encuentren
+   
     public void revelarTodo() {
         for (int i = 0; i < filas; i++) {
             for (int j = 0; j < columnas; j++) {

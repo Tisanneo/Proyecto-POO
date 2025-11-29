@@ -5,3 +5,66 @@ GANADOR: Andre
 PERDEDOR: Santiago
 MOVIMIENTOS TOTALES (Turnos): 1
 ------------------------------------------------
+------------------------------------------------
+FECHA: Thu Nov 27 22:06:55 PST 2025
+DIFICULTAD: Intermedio
+GANADOR: andretr
+PERDEDOR: clocoo
+MOVIMIENTOS TOTALES (Turnos): 20
+------------------------------------------------
+------------------------------------------------
+FECHA: Fri Nov 28 19:48:06 PST 2025
+DIFICULTAD: Principiante
+GANADOR: clocoo
+PERDEDOR: nfz
+MOVIMIENTOS TOTALES (Turnos): 7
+------------------------------------------------
+------------------------------------------------
+FECHA: Fri Nov 28 19:48:44 PST 2025
+DIFICULTAD: Intermedio
+GANADOR: c
+PERDEDOR: d
+MOVIMIENTOS TOTALES (Turnos): 1
+------------------------------------------------
+------------------------------------------------
+FECHA: Fri Nov 28 19:56:44 PST 2025
+DIFICULTAD: Avanzado
+GANADOR: gg
+PERDEDOR: ff
+MOVIMIENTOS TOTALES (Turnos): 60
+------------------------------------------------
+------------------------------------------------
+FECHA: Fri Nov 28 19:58:08 PST 2025
+DIFICULTAD: Principiante
+GANADOR: d
+PERDEDOR: ddps
+MOVIMIENTOS TOTALES (Turnos): 4
+------------------------------------------------
+------------------------------------------------
+FECHA: Fri Nov 28 19:59:20 PST 2025
+DIFICULTAD: Principiante
+GANADOR: ddps
+PERDEDOR: d
+MOVIMIENTOS TOTALES (Turnos): 24
+------------------------------------------------
+------------------------------------------------
+FECHA: Fri Nov 28 20:00:47 PST 2025
+DIFICULTAD: Principiante
+GANADOR: ddps
+PERDEDOR: d
+MOVIMIENTOS TOTALES (Turnos): 1
+------------------------------------------------
+------------------------------------------------
+FECHA: Fri Nov 28 20:01:45 PST 2025
+DIFICULTAD: Principiante
+GANADOR: defg
+PERDEDOR: abc
+MOVIMIENTOS TOTALES (Turnos): 5
+------------------------------------------------
+------------------------------------------------
+FECHA: Fri Nov 28 20:03:08 PST 2025
+DIFICULTAD: Principiante
+GANADOR: abc
+PERDEDOR: defg
+MOVIMIENTOS TOTALES (Turnos): 4
+------------------------------------------------
