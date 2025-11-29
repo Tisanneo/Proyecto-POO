@@ -52,7 +52,7 @@ public class Tablero implements Serializable {
         celda.revelada = true;
 
         if (celda.esMina) {
-            return true; // ¡Boom!
+            return true; 
         }
 
         if (celda.minasAlrededor == 0) {

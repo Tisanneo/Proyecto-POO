@@ -12,7 +12,7 @@ public class Partida implements Runnable {
     private Tablero tableroJ1, tableroJ2;
     private boolean turnoJ1 = true;
     
-    // Variables para los nombres reales
+ 
     private String nombreJ1 = "Jugador 1";
     private String nombreJ2 = "Jugador 2";
     
