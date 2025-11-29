@@ -47,7 +47,6 @@ public class Partida implements Runnable {
             }
             
             System.out.println("Partida iniciada: " + nombreJ1 + " vs " + nombreJ2);
-            // ---------------------------------------------
 
             out1.writeObject(new Mensaje("CONFIG_DIFICULTAD", null));
             out2.writeObject(new Mensaje("INFO", "Esperando que el anfitrión (" + nombreJ1 + ") elija la dificultad..."));

@@ -4,7 +4,6 @@ import java.util.Random;
 
 public class GeneradorTableros {
     
-    // Método simplificado para crear según dificultad
     public Tablero[] generarParTableros(String dificultad) {
         int f, c, m;
         
@@ -21,7 +20,7 @@ public class GeneradorTableros {
                 break;
         }
         
-        // Generar dos tableros independientes pero con misma configuración
+    
         return new Tablero[] {
             new Tablero(f, c, m),
             new Tablero(f, c, m)

@@ -11,7 +11,6 @@ public class Mensaje implements Serializable {
         this.contenido = contenido;
     }
 
-    // Getters y Setters
     public String getTipo() {
         return tipo;
     }
